@@ -27,16 +27,31 @@
     </div>
 </header>
 
+<!-- PROGRESS SECTION -->
 <div class="progress-section">
+
+    <!-- DAILY -->
+    <div class="progress-card">
+        <div class="progress-header">
+            Daily Progress:
+            <span id="dailyProgressText">0 / 0 (0%)</span>
+        </div>
+        <div class="progress-bar">
+            <div id="dailyProgressFill" class="progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- WEEKLY -->
     <div class="progress-card">
         <div class="progress-header">
             Weekly Progress:
-            <span id="progressText">0 / 0 (0%)</span>
+            <span id="weeklyProgressText">0 / 0 (0%)</span>
         </div>
         <div class="progress-bar">
-            <div id="progressFill" class="progress-fill"></div>
+            <div id="weeklyProgressFill" class="progress-fill"></div>
         </div>
     </div>
+
 </div>
 
 <div class="columns">
@@ -141,7 +156,6 @@ function completeTask(id){
 
     tasks.forEach(task=>{
         if(task.id === id){
-
             if(!task.completions.includes(monday)){
                 task.completions.push(monday);
                 task.completionTimes[monday] = new Date().toISOString();
@@ -278,7 +292,7 @@ function render(){
     const tasks = loadTasks().filter(task => {
 
         if(filterValue === "week"){
-            return true;  // show entire week
+            return true;
         } else {
             return task.weekday === parseInt(filterValue);
         }
@@ -298,35 +312,69 @@ function render(){
         list.appendChild(createCard(task));
     });
 
-    updateProgress();
+    updateProgress(filterValue);
 }
 
 render();
 
 /* =========================
-   WEEKLY PROGRESS
+   PROGRESS CALCULATION
 ========================= */
 
-function updateProgress(){
+function updateProgress(filterValue){
 
     const tasks = loadTasks();
 
-    const total = tasks.length;
+    /* WEEKLY */
 
-    const completed = tasks.filter(t =>
+    const weeklyTotal = tasks.length;
+
+    const weeklyCompleted = tasks.filter(t =>
         t.completions.includes(monday)
     ).length;
 
-    const percent =
-        total === 0
+    const weeklyPercent =
+        weeklyTotal === 0
         ? 0
-        : Math.round((completed / total) * 100);
+        : Math.round((weeklyCompleted / weeklyTotal) * 100);
 
-    document.getElementById("progressText").innerText =
-        `${completed} / ${total} (${percent}%)`;
+    document.getElementById("weeklyProgressText").innerText =
+        `${weeklyCompleted} / ${weeklyTotal} (${weeklyPercent}%)`;
 
-    document.getElementById("progressFill").style.width =
-        percent + "%";
+    document.getElementById("weeklyProgressFill").style.width =
+        weeklyPercent + "%";
+
+
+    /* DAILY */
+
+    let dayIndex;
+
+    if(filterValue === "week"){
+        dayIndex = todayWeekday; // default to today
+    } else {
+        dayIndex = parseInt(filterValue);
+    }
+
+    const dailyTasks =
+        tasks.filter(t => t.weekday === dayIndex);
+
+    const dailyTotal = dailyTasks.length;
+
+    const dailyCompleted =
+        dailyTasks.filter(t =>
+            t.completions.includes(monday)
+        ).length;
+
+    const dailyPercent =
+        dailyTotal === 0
+        ? 0
+        : Math.round((dailyCompleted / dailyTotal) * 100);
+
+    document.getElementById("dailyProgressText").innerText =
+        `${dailyCompleted} / ${dailyTotal} (${dailyPercent}%)`;
+
+    document.getElementById("dailyProgressFill").style.width =
+        dailyPercent + "%";
 }
 
 </script>
