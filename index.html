@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chores TV</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<div class="container">
+
+<header>
+    <h1 id="dateHeader"></h1>
+    <div class="subtitle">Chores to do today</div>
+    <div class="day-filter">
+    <select id="dayFilter" onchange="render()">
+        <option value="week">This Week</option>
+        <option value="0">Monday</option>
+        <option value="1">Tuesday</option>
+        <option value="2">Wednesday</option>
+        <option value="3">Thursday</option>
+        <option value="4">Friday</option>
+        <option value="5">Saturday</option>
+        <option value="6">Sunday</option>
+    </select>
+</div>
+</header>
+
+<div class="progress-section">
+    <div class="progress-card">
+        <div class="progress-header">
+            Weekly Progress: <span id="progressText">0 / 0 (0%)</span>
+        </div>
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+    </div>
+</div>
+
+<div class="columns">
+    <div class="person-column">
+        <h2>My Chores</h2>
+        <div id="taskList"></div>
+    </div>
+</div>
+
+<div class="form-card">
+
+    <input id="taskTitle" placeholder="Task name">
+
+    <select id="weekday">
+        <option value="0">Monday</option>
+        <option value="1">Tuesday</option>
+        <option value="2">Wednesday</option>
+        <option value="3">Thursday</option>
+        <option value="4">Friday</option>
+        <option value="5">Saturday</option>
+        <option value="6">Sunday</option>
+    </select>
+
+    <button onclick="addTask()">Add Task</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* DATE HEADER */
+
+const today = new Date();
+document.getElementById("dateHeader").innerText =
+    today.toLocaleDateString(undefined,{
+        weekday:"long",
+        month:"long",
+        day:"numeric"
+    });
+
+/* STORAGE */
+
+function loadTasks(){
+    return JSON.parse(localStorage.getItem("tasks")) || [];
+}
+
+function saveTasks(tasks){
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+/* WEEK LOGIC */
+
+function getMonday(date){
+    const d = new Date(date);
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    return d.toISOString().split("T")[0];
+}
+
+const monday = getMonday(today);
+const todayWeekday = (today.getDay() + 6) % 7;
+
+/* ADD TASK */
+
+function addTask(){
+    const title = document.getElementById("taskTitle").value;
+    if(!title) return;
+
+    const weekday = parseInt(document.getElementById("weekday").value);
+    const tasks = loadTasks();
+
+    tasks.push({
+        id: Date.now(),
+        title,
+        weekday,
+        completions: [],
+        completionTimes: {}
+    });
+
+    saveTasks(tasks);
+    document.getElementById("taskTitle").value = "";
+    render();
+}
+
+/* COMPLETE */
+
+function completeTask(id){
+    const tasks = loadTasks();
+
+    tasks.forEach(task=>{
+        if(task.id === id){
+            if(!task.completions.includes(monday)){
+                task.completions.push(monday);
+                task.completionTimes[monday] = new Date().toISOString();
+            }
+        }
+    });
+
+    saveTasks(tasks);
+    render();
+}
+
+/* DELETE */
+
+function deleteTask(id){
+    saveTasks(loadTasks().filter(t=>t.id !== id));
+    render();
+}
+
+/* EDIT */
+
+function editTask(id){
+    const tasks = loadTasks();
+    const task = tasks.find(t => t.id === id);
+    if(!task) return;
+
+    const card = event.target.closest(".task-card");
+
+    const weekdayNames = [
+        "Monday","Tuesday","Wednesday",
+        "Thursday","Friday","Saturday","Sunday"
+    ];
+
+    card.innerHTML = `
+        <div class="edit-form">
+            <input id="editTitle${id}" value="${task.title}">
+            <select id="editWeekday${id}">
+                ${weekdayNames.map((day,i)=>
+                    `<option value="${i}" ${task.weekday===i?"selected":""}>${day}</option>`
+                ).join("")}
+            </select>
+            <div class="edit-buttons">
+                <button onclick="saveEdit(${id})" class="complete">Save</button>
+                <button onclick="render()" class="delete">Cancel</button>
+            </div>
+        </div>
+    `;
+}
+
+function saveEdit(id){
+    const tasks = loadTasks();
+    const task = tasks.find(t => t.id === id);
+    if(!task) return;
+
+    task.title = document.getElementById(`editTitle${id}`).value;
+    task.weekday = parseInt(document.getElementById(`editWeekday${id}`).value);
+
+    saveTasks(tasks);
+    render();
+}
+
+/* CREATE CARD */
+
+function createCard(task, overdueDays){
+
+    const completed = task.completions.includes(monday);
+    let completionText = "";
+
+    if(completed && task.completionTimes[monday]){
+        const time = new Date(task.completionTimes[monday]);
+        const weekday = time.toLocaleDateString(undefined,{weekday:"long"});
+        const clock = time.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+        completionText =
+            `<span class="done-label animated">
+                Completed ${weekday} at ${clock} ✓
+            </span>`;
+    }
+
+    const card = document.createElement("div");
+
+    let overdueClass = "";
+    if(!completed){
+        if(overdueDays === 1) overdueClass = " overdue1";
+        if(overdueDays >= 2) overdueClass = " overdue2";
+    }
+
+    card.className =
+        "task-card"
+        + (completed ? " completed" : "")
+        + overdueClass;
+
+    card.innerHTML = `
+        <div>
+            <h3>${task.title}</h3>
+        </div>
+        <div class="task-actions">
+            ${
+                completed
+                ? completionText
+                : `<button class="complete" onclick="completeTask(${task.id})">Complete</button>`
+            }
+            <button class="edit" onclick="editTask(${task.id})">✏️</button>
+            <button class="delete" onclick="deleteTask(${task.id})">Delete</button>
+        </div>
+    `;
+
+    return card;
+}
+
+/* RENDER */
+
+function render(){
+
+    const list = document.getElementById("taskList");
+    list.innerHTML = "";
+
+    const filterValue = document.getElementById("dayFilter").value;
+
+    const tasks = loadTasks().filter(task => {
+
+        if(filterValue === "week"){
+            return task.weekday <= todayWeekday;
+        } else {
+            return task.weekday === parseInt(filterValue);
+        }
+    });
+
+    tasks.sort((a,b) => {
+        const aDone = a.completions.includes(monday);
+        const bDone = b.completions.includes(monday);
+
+        if(aDone !== bDone) return aDone ? 1 : -1;
+
+        return a.weekday - b.weekday;
+    });
+
+    tasks.forEach(task=>{
+
+        const completed = task.completions.includes(monday);
+
+        let overdueDays = todayWeekday - task.weekday;
+        if(completed) overdueDays = 0;
+
+        list.appendChild(createCard(task, overdueDays));
+    });
+
+    updateProgress(tasks);
+}
+render();
+
+/* PROGRESS */
+
+function updateProgress(filteredTasks){
+
+    const tasks = filteredTasks || loadTasks();
+
+    const total = tasks.length;
+
+    const completed = tasks.filter(t =>
+        t.completions.includes(monday)
+    ).length;
+
+    const percent =
+        total === 0
+        ? 0
+        : Math.round((completed / total) * 100);
+
+    document.getElementById("progressText").innerText =
+        `${completed} / ${total} (${percent}%)`;
+
+    document.getElementById("progressFill").style.width =
+        percent + "%";
+}
+
+</script>
+
+</body>
+</html>
