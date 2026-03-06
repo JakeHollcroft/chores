@@ -369,3 +369,24 @@ button.edit {
     border: none;
     font-size: 14px;
 }
+/* OVERDUE STATES */
+
+.task-card.overdue1 {
+    border-left: 6px solid #ffb300;
+    background: rgba(255, 179, 0, 0.08);
+}
+
+.task-card.overdue2 {
+    border-left: 6px solid #e53935;
+    background: rgba(229, 57, 53, 0.10);
+}
+
+/* subtle pulse for seriously overdue */
+.task-card.overdue2 h3 {
+    animation: overduePulse 1.8s infinite alternate;
+}
+
+@keyframes overduePulse {
+    from { opacity: 1; }
+    to { opacity: 0.75; }
+}

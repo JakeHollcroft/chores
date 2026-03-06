@@ -27,10 +27,8 @@
     </div>
 </header>
 
-<!-- PROGRESS SECTION -->
 <div class="progress-section">
 
-    <!-- DAILY -->
     <div class="progress-card">
         <div class="progress-header">
             Daily Progress:
@@ -41,7 +39,6 @@
         </div>
     </div>
 
-    <!-- WEEKLY -->
     <div class="progress-card">
         <div class="progress-header">
             Weekly Progress:
@@ -81,9 +78,7 @@
 
 <script>
 
-/* =========================
-   DATE HEADER
-========================= */
+/* DATE HEADER */
 
 const today = new Date();
 
@@ -94,9 +89,7 @@ document.getElementById("dateHeader").innerText =
         day:"numeric"
     });
 
-/* =========================
-   STORAGE
-========================= */
+/* STORAGE */
 
 function loadTasks(){
     return JSON.parse(localStorage.getItem("tasks")) || [];
@@ -106,9 +99,7 @@ function saveTasks(tasks){
     localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
-/* =========================
-   WEEK LOGIC
-========================= */
+/* WEEK LOGIC */
 
 function getMonday(date){
     const d = new Date(date);
@@ -120,9 +111,7 @@ function getMonday(date){
 const monday = getMonday(today);
 const todayWeekday = (today.getDay() + 6) % 7;
 
-/* =========================
-   ADD TASK
-========================= */
+/* ADD */
 
 function addTask(){
 
@@ -146,9 +135,7 @@ function addTask(){
     render();
 }
 
-/* =========================
-   COMPLETE TASK
-========================= */
+/* COMPLETE */
 
 function completeTask(id){
 
@@ -167,71 +154,36 @@ function completeTask(id){
     render();
 }
 
-/* =========================
-   DELETE
-========================= */
+/* DELETE */
 
 function deleteTask(id){
     saveTasks(loadTasks().filter(t=>t.id !== id));
     render();
 }
 
-/* =========================
-   EDIT
-========================= */
-
-function editTask(id){
-
-    const tasks = loadTasks();
-    const task = tasks.find(t => t.id === id);
-    if(!task) return;
-
-    const card = event.target.closest(".task-card");
-
-    const weekdayNames = [
-        "Monday","Tuesday","Wednesday",
-        "Thursday","Friday","Saturday","Sunday"
-    ];
-
-    card.innerHTML = `
-        <div class="edit-form">
-            <input id="editTitle${id}" value="${task.title}">
-            <select id="editWeekday${id}">
-                ${weekdayNames.map((day,i)=>
-                    `<option value="${i}" ${task.weekday===i?"selected":""}>${day}</option>`
-                ).join("")}
-            </select>
-            <div class="edit-buttons">
-                <button onclick="saveEdit(${id})" class="complete">Save</button>
-                <button onclick="render()" class="delete">Cancel</button>
-            </div>
-        </div>
-    `;
-}
-
-function saveEdit(id){
-
-    const tasks = loadTasks();
-    const task = tasks.find(t => t.id === id);
-    if(!task) return;
-
-    task.title =
-        document.getElementById(`editTitle${id}`).value;
-
-    task.weekday =
-        parseInt(document.getElementById(`editWeekday${id}`).value);
-
-    saveTasks(tasks);
-    render();
-}
-
-/* =========================
-   CREATE CARD
-========================= */
+/* CREATE CARD WITH OVERDUE */
 
 function createCard(task){
 
     const completed = task.completions.includes(monday);
+
+    let overdueDays = 0;
+
+    if(!completed && task.weekday < todayWeekday){
+        overdueDays = todayWeekday - task.weekday;
+    }
+
+    const card = document.createElement("div");
+
+    let overdueClass = "";
+
+    if(overdueDays === 1) overdueClass = " overdue1";
+    if(overdueDays >= 2) overdueClass = " overdue2";
+
+    card.className =
+        "task-card"
+        + (completed ? " completed" : "")
+        + overdueClass;
 
     let completionText = "";
 
@@ -254,11 +206,6 @@ function createCard(task){
             </span>`;
     }
 
-    const card = document.createElement("div");
-
-    card.className =
-        "task-card" + (completed ? " completed" : "");
-
     card.innerHTML = `
         <div>
             <h3>${task.title}</h3>
@@ -269,7 +216,6 @@ function createCard(task){
                 ? completionText
                 : `<button class="complete" onclick="completeTask(${task.id})">Complete</button>`
             }
-            <button class="edit" onclick="editTask(${task.id})">✏️</button>
             <button class="delete" onclick="deleteTask(${task.id})">Delete</button>
         </div>
     `;
@@ -277,9 +223,7 @@ function createCard(task){
     return card;
 }
 
-/* =========================
-   RENDER
-========================= */
+/* RENDER */
 
 function render(){
 
@@ -299,12 +243,9 @@ function render(){
     });
 
     tasks.sort((a,b) => {
-
         const aDone = a.completions.includes(monday);
         const bDone = b.completions.includes(monday);
-
         if(aDone !== bDone) return aDone ? 1 : -1;
-
         return a.weekday - b.weekday;
     });
 
@@ -317,9 +258,7 @@ function render(){
 
 render();
 
-/* =========================
-   PROGRESS CALCULATION
-========================= */
+/* PROGRESS */
 
 function updateProgress(filterValue){
 
@@ -347,13 +286,10 @@ function updateProgress(filterValue){
 
     /* DAILY */
 
-    let dayIndex;
-
-    if(filterValue === "week"){
-        dayIndex = todayWeekday; // default to today
-    } else {
-        dayIndex = parseInt(filterValue);
-    }
+    let dayIndex =
+        filterValue === "week"
+        ? todayWeekday
+        : parseInt(filterValue);
 
     const dailyTasks =
         tasks.filter(t => t.weekday === dayIndex);
