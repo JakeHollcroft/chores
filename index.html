@@ -157,6 +157,13 @@ function completeTask(id){
 /* DELETE */
 
 function deleteTask(id){
+
+    const confirmDelete = confirm("Are you sure?");
+
+    if(!confirmDelete){
+        return;
+    }
+
     saveTasks(loadTasks().filter(t=>t.id !== id));
     render();
 }
