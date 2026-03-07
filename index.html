@@ -230,32 +230,90 @@ function render(){
     const list = document.getElementById("taskList");
     list.innerHTML = "";
 
-    const filterValue =
-        document.getElementById("dayFilter").value;
+    const filterValue = document.getElementById("dayFilter").value;
 
-    const tasks = loadTasks().filter(task => {
+    const tasks = loadTasks();
+
+    let overdueTasks = [];
+    let selectedTasks = [];
+    let completedTasks = [];
+
+    const selectedDay =
+        filterValue === "week"
+        ? todayWeekday
+        : parseInt(filterValue);
+
+    tasks.forEach(task => {
+
+        const completed = task.completions.includes(monday);
+
+        const isOverdue =
+            !completed &&
+            task.weekday < todayWeekday;
+
+        if(isOverdue){
+
+            overdueTasks.push(task);
+
+        }
+        else if(filterValue === "week" || task.weekday === selectedDay){
+
+            if(completed){
+                completedTasks.push(task);
+            } else {
+                selectedTasks.push(task);
+            }
+
+        }
+
+    });
+
+    overdueTasks.sort((a,b)=>a.weekday-b.weekday);
+    selectedTasks.sort((a,b)=>a.weekday-b.weekday);
+    completedTasks.sort((a,b)=>a.weekday-b.weekday);
+
+    if(overdueTasks.length){
+
+        const title = document.createElement("div");
+        title.className = "section-title";
+        title.innerText = "Overdue";
+        list.appendChild(title);
+
+        overdueTasks.forEach(task=>{
+            list.appendChild(createCard(task));
+        });
+
+    }
+
+    if(selectedTasks.length){
+
+        const title = document.createElement("div");
+        title.className = "section-title";
 
         if(filterValue === "week"){
-            return true;
+            title.innerText = "This Week";
         } else {
-            return task.weekday === parseInt(filterValue);
+            const days = [
+                "Monday","Tuesday","Wednesday",
+                "Thursday","Friday","Saturday","Sunday"
+            ];
+            title.innerText = days[selectedDay];
         }
-    });
 
-    tasks.sort((a,b) => {
-        const aDone = a.completions.includes(monday);
-        const bDone = b.completions.includes(monday);
-        if(aDone !== bDone) return aDone ? 1 : -1;
-        return a.weekday - b.weekday;
-    });
+        list.appendChild(title);
 
-    tasks.forEach(task=>{
+        selectedTasks.forEach(task=>{
+            list.appendChild(createCard(task));
+        });
+
+    }
+
+    completedTasks.forEach(task=>{
         list.appendChild(createCard(task));
     });
 
     updateProgress(filterValue);
 }
-
 render();
 
 /* PROGRESS */
